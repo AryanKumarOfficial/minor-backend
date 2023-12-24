@@ -1,6 +1,7 @@
 const express = require('express');
 const User = require('../database/model/User');
 const bycrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const router = express.Router();
 
@@ -39,6 +40,36 @@ router.post('/register', async (req, res) => {
                     )
                 }
                 )
+            }
+        }
+    } catch (error) {
+        console.log(error, 'error');
+    }
+});
+
+router.post('/login', async (req, res) => {
+    try {
+        let success = false;
+        const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(200).json({ msg: 'Please enter all fields', reqBody: req.body, success });
+        }
+        else {
+            const user = await User.findOne({ email });
+            if (!user) {
+                return res.status(200).json({ msg: 'User does not exists', success });
+            }
+            else {
+                bycrypt.compare(password, user.password, (err, isMatch) => {
+                    if (err) throw err;
+                    if (isMatch) {
+                        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: 3600 });
+                        return res.status(200).json({ msg: 'User logged in successfully', token, user, success: true });
+                    }
+                    else {
+                        return res.status(200).json({ msg: 'Invalid credentials', success });
+                    }
+                })
             }
         }
     } catch (error) {
