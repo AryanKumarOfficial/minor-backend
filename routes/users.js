@@ -63,7 +63,7 @@ router.post('/login', async (req, res) => {
                 bycrypt.compare(password, user.password, (err, isMatch) => {
                     if (err) throw err;
                     if (isMatch) {
-                        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: 3600 });
+                        const token = jwt.sign({ user }, process.env.JWT_SECRET, { expiresIn: 3600 });
                         return res.status(200).json({ msg: 'User logged in successfully', token, user, success: true });
                     }
                     else {
@@ -74,6 +74,55 @@ router.post('/login', async (req, res) => {
         }
     } catch (error) {
         console.log(error, 'error');
+    }
+});
+
+
+// get the specific user with authorization token in header
+
+router.get('/get', async (req, res) => {
+    try {
+        let success = false;
+        const token = req.header('Authorization');
+        if (!token) {
+            return res.status(401).json({ error: 'No token, authorization denied', success });
+        }
+        else {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            const user = await User.findById(decoded.user._id).select('-password');
+            if (!user) {
+                return res.status(404).json({ error: 'User not found', success });
+            }
+            else {
+                return res.status(200).json({ msg: 'User found', user, success: true });
+            }
+        }
+    } catch (error) {
+        console.log(error, 'error');
+        return res.status(500).json({ error: 'Internal Server error', success: false });
+    }
+});
+
+router.get('/logout', async (req, res) => {
+    try {
+        let success = false;
+        const token = req.header('Authorization');
+        if (!token) {
+            return res.status(401).json({ error: 'No token, authorization denied', success });
+        }
+        else {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            const user = await User.findById(decoded.user._id).select('-password');
+            if (!user) {
+                return res.status(404).json({ error: 'User not found', success });
+            }
+            else {
+                return res.status(200).json({ msg: 'User logged out successfully', success: true });
+            }
+        }
+    } catch (error) {
+        console.log(error, 'error');
+        return res.status(500).json({ error: 'Internal Server error', success: false });
     }
 });
 
