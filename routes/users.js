@@ -145,6 +145,51 @@ router.get('/logout', async (req, res) => {
     }
 });
 
+router.put('/update', async (req, res) => {
+    try {
+        let success = false;
+        const token = req.header('Authorization');
+        if (!token) {
+            return res.status(401).json({ error: 'No token, authorization denied', success });
+        }
+        else {
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                const user = await User.findById(decoded.user._id).select('-password');
+                if (!user) {
+                    return res.status(404).json({ error: 'User not found', success });
+                }
+                else {
+                    const { fname, lname, phone, address } = req.body;
+                    if (!fname || !lname || !phone || !address) {
+                        return res.status(200).json({ msg: 'Please enter all fields', reqBody: req.body, success });
+                    }
+                    else {
+                        user.fname = fname;
+                        user.lname = lname;
+                        user.phone = phone;
+                        user.address = address;
+                        await user.save();
+                        return res.status(200).json({ msg: 'User updated successfully', user, success: true });
+                    }
+                }
+            } catch (error) {
+                if (error.name === 'TokenExpiredError') {
+                    return res.status(401).json({ error: 'Token expired, please log in again', success });
+                } else if (error.name === 'JsonWebTokenError') {
+                    return res.status(401).json({ error: 'Invalid token, please log in again', success });
+                } else {
+                    console.log(error, 'error');
+                    return res.status(500).json({ error: 'Internal Server error', success: false });
+                }
+            }
+        }
+    } catch (error) {
+        console.log(error, 'error');
+        return res.status(500).json({ error: 'Internal Server error', success: false });
+    }
+});
+
 
 module.exports = router;
 
