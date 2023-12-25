@@ -104,32 +104,39 @@ router.get('/get', async (req, res) => {
     }
 });
 
+
 router.get('/logout', async (req, res) => {
     try {
         let bearerToken = undefined;
         let success = false;
         const token = req.header('Authorization');
-        console.log(token.split(' '), 'token');
+
         if (!token) {
             return res.status(401).json({ error: 'No token, authorization denied', success });
-        }
-        else {
+        } else {
             const parts = token.split(' ');
             const bearer = parts[0];
             bearerToken = parts[1];
-            console.log(bearer, bearerToken, 'bearer');
         }
+
         if (!bearerToken) {
             return res.status(401).json({ error: 'No token, authorization denied', success });
-        }
-        else {
-            const decoded = jwt.verify(bearerToken, process.env.JWT_SECRET);
-            const user = await User.findById(decoded.user._id).select('-password');
-            if (!user) {
-                return res.status(404).json({ error: 'User not found', success });
-            }
-            else {
-                return res.status(200).json({ msg: 'User logged out successfully', success: true });
+        } else {
+            try {
+                const decoded = jwt.verify(bearerToken, process.env.JWT_SECRET);
+                const user = await User.findById(decoded.user._id).select('-password');
+                if (!user) {
+                    return res.status(404).json({ error: 'User not found', success });
+                } else {
+                    return res.status(200).json({ msg: 'User logged out successfully', success: true });
+                }
+            } catch (error) {
+                if (error.name === 'TokenExpiredError') {
+                    return res.status(401).json({ error: 'Token expired, please log in again', success });
+                } else {
+                    console.log(error, 'error');
+                    return res.status(500).json({ error: 'Internal Server error', success: false });
+                }
             }
         }
     } catch (error) {
@@ -137,6 +144,7 @@ router.get('/logout', async (req, res) => {
         return res.status(500).json({ error: 'Internal Server error', success: false });
     }
 });
+
 
 module.exports = router;
 
