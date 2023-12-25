@@ -84,7 +84,7 @@ router.post('/login', async (req, res) => {
 router.get('/get', async (req, res) => {
     try {
         let success = false;
-        const token = req.header('Authorization');
+        const token = req.header('Authorization')?.split(' ')[1];
         if (!token) {
             return res.status(401).json({ error: 'No token, authorization denied', success });
         }
@@ -112,7 +112,7 @@ router.get('/logout', async (req, res) => {
         const token = req.header('Authorization');
 
         if (!token) {
-            return res.status(401).json({ error: 'No token, authorization denied', success });
+            return res.status(401).json({ msg: 'No token, authorization denied', success });
         } else {
             const parts = token.split(' ');
             const bearer = parts[0];
@@ -120,22 +120,22 @@ router.get('/logout', async (req, res) => {
         }
 
         if (!bearerToken) {
-            return res.status(401).json({ error: 'No token, authorization denied', success });
+            return res.status(401).json({ msg: 'No token, authorization denied', success });
         } else {
             try {
                 const decoded = jwt.verify(bearerToken, process.env.JWT_SECRET);
                 const user = await User.findById(decoded.user._id).select('-password');
                 if (!user) {
-                    return res.status(404).json({ error: 'User not found', success });
+                    return res.status(404).json({ msg: 'User not found', success });
                 } else {
                     return res.status(200).json({ msg: 'User logged out successfully', success: true });
                 }
             } catch (error) {
                 if (error.name === 'TokenExpiredError') {
-                    return res.status(401).json({ error: 'Token expired, please log in again', success });
+                    return res.status(401).json({ msg: 'Token expired, please log in again', success });
                 } else {
                     console.log(error, 'error');
-                    return res.status(500).json({ error: 'Internal Server error', success: false });
+                    return res.status(500).json({ msg: 'Internal Server error', success: false });
                 }
             }
         }
@@ -148,11 +148,12 @@ router.get('/logout', async (req, res) => {
 router.put('/update', async (req, res) => {
     try {
         let success = false;
-        const token = req.header('Authorization');
-        if (!token) {
+        const authHeader = req.header('Authorization');
+        if (!authHeader) {
             return res.status(401).json({ error: 'No token, authorization denied', success });
         }
         else {
+            const token = authHeader.split(' ')[1];
             try {
                 const decoded = jwt.verify(token, process.env.JWT_SECRET);
                 const user = await User.findById(decoded.user._id).select('-password');
