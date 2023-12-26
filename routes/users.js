@@ -112,7 +112,7 @@ router.get('/logout', async (req, res) => {
         const token = req.header('Authorization');
 
         if (!token) {
-            return res.status(401).json({ msg: 'No token, authorization denied', success });
+            return res.status(401).json({ msg: 'No token, authorization denied', success }); // 401: Unauthorized
         } else {
             const parts = token.split(' ');
             const bearer = parts[0];
@@ -120,7 +120,7 @@ router.get('/logout', async (req, res) => {
         }
 
         if (!bearerToken) {
-            return res.status(401).json({ msg: 'No token, authorization denied', success });
+            return res.status(401).json({ msg: 'Invalid token, authorization denied', success }); // 401: Unauthorized
         } else {
             try {
                 const decoded = jwt.verify(bearerToken, process.env.JWT_SECRET);
@@ -132,7 +132,7 @@ router.get('/logout', async (req, res) => {
                 }
             } catch (error) {
                 if (error.name === 'TokenExpiredError') {
-                    return res.status(401).json({ msg: 'Token expired, please log in again', success });
+                    return res.status(401).json({ msg: 'Token expired, please log in again', success }); // 401: Unauthorized
                 } else {
                     console.log(error, 'error');
                     return res.status(500).json({ msg: 'Internal Server error', success: false });
