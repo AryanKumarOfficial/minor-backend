@@ -162,7 +162,6 @@ router.put('/update', async (req, res) => {
                 }
                 else {
                     const { fname, lname, phone, address } = req.body;
-                    console.log(req.body, 'req.body');
                     if (!fname || !lname || !phone || !address) {
                         return res.status(400).json({ error: 'Please enter all fields', reqBody: req.body, success });
                     }
