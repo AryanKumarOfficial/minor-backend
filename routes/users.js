@@ -191,6 +191,32 @@ router.put('/update', async (req, res) => {
     }
 });
 
+router.post('/verify-captcha', async (req, res) => {
+
+    try {
+        let success = false;
+        const { captchaToken } = req.body;
+        const secretKey = process.env.REACT_APP_RECAPTCHA_SECRET_KEY
+        if (!captchaToken || !secretKey) {
+            return res.status(400).json({ error: 'Please enter all fields', reqBody: req.body, success });
+        }
+        else {
+            const url = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${captchaToken}`;
+            const response = await fetch(url, { method: 'POST' });
+            const data = await response.json();
+            console.log(data, 'data');
+            if (data.success) {
+                return res.status(200).json({ msg: 'Captcha verified successfully', data, success: true });
+            }
+            else {
+                return res.status(400).json({ error: 'Captcha verification failed', data, success });
+            }
+        }
+    } catch (error) {
+
+    }
+});
+
 
 module.exports = router;
 
