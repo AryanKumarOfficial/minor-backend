@@ -326,8 +326,9 @@ router.post('/verify-captcha', async (req, res) => {
         let success = false;
         const { captchaToken } = req.body;
         const secretKey = process.env.REACT_APP_RECAPTCHA_SECRET_KEY
+        console.log(captchaToken, secretKey, 'captchaToken, secretKey');
         if (!captchaToken || !secretKey) {
-            return res.status(400).json({ error: 'Please enter all fields', reqBody: req.body, success });
+            return res.status(404).json({ error: 'Please enter all fields', reqBody: req.body, success });
         }
         else {
             const url = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${captchaToken}`;
