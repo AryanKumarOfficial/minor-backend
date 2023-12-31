@@ -3,6 +3,7 @@ const express = require('express');
 const User = require('../database/model/User');
 const bycrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const nodeMailer = require('nodemailer');
 
 const router = express.Router();
 
@@ -11,7 +12,7 @@ router.use(express.json());
 router.get('/', (req, res) => {
     res.send(`<h1 style="color:green;text-align:center;margin-top:25rem;font-size:3rem;">User route is working properly</h1>`);
 });
-
+// register the user and send a email verification link to the user's email address with a token in the link to verify the user's email address and activate the account of the user if the user's email address is verified successfully and send a welcome email to the user's email address after successful registration and email verification and account activation of the user and send a email to the admin's email address after successful registration and email verification and account activation of the user to notify the admin about the new user registration and email verification and account activation of the user 
 router.post('/register', async (req, res) => {
     try {
         let success = false;
@@ -21,32 +22,182 @@ router.post('/register', async (req, res) => {
         }
         else {
             const user = await User.findOne({ email });
-            if (user) {
-                return res.status(200).json({ msg: 'User already exists', success });
+            if (user && user.isVerified) {
+                return res.status(200).json({ msg: 'User already exists', success, verified: true });
+            }
+            else if (user && !user.isVerified) {
+                // if the user exists but email is not verified then send a verification link to the user's email address again
+                const token = jwt.sign({ user }, process.env.JWT_SECRET, { expiresIn: 3600 });
+                const transporter = nodeMailer.createTransport({
+                    service: 'gmail',
+                    auth: {
+                        user: process.env.NODEMAILER_EMAIL,
+                        pass: process.env.NODEMAILER_PASSWORD
+                    }
+                });
+                const mailOptions = {
+                    from: 'support@hospitalo.com',
+                    to: email,
+                    subject: 'Email Verification',
+
+                    html: ` <main
+                        style="
+                          backdrop-filter: blur(10px);
+                          box-shadow: 0 0 10px #af5111;
+                          padding: 10px;
+                        "
+                      >
+                        <h1 style="color: green; text-align: center">Email Verification</h1>
+                        <p style="color: magenta; font-weight: bold">
+                          Please click on the link below to verify your email address and activate
+                          your account
+                        </p>
+                        <a
+                          href=${process.env.SITE_URL}/user/verify?token=${token}
+                          target="_blank"
+                          style="color: red; font-weight: bold; text-decoration: none"
+                          >Verify Email Address</a
+                        >
+                        <ul
+                          style="
+                            color: blue;
+                            width: 100%;
+                            height: 100%;
+                            padding: 4px;
+                            gap: 14px;
+                            text-align: left;
+                            margin-left: 10px;
+                            flex-wrap: wrap;
+                            text-wrap: balance;
+                            list-style-type: square;
+                            list-style-position: calc(40px-60px);
+                            list-style-image: url('https://img.icons8.com/ios-filled/14/right') !important;
+                          "
+                        >
+                          <li>If you did not register with us then you can ignore this email</li>
+                          <li>
+                            if you have any query then you can contact us by replying to this
+                            email we will try to resolve your query as soon as possible
+                          </li>
+                          <li>
+                            if you have not registered with us then we will delete your email
+                            address from our database within 1 hours
+                          </li>
+                        </ul>
+                        <h3 style="color: green; text-align: center">Thank You</h3>
+                        <h3 style="color: green; text-align: center">Hospitalo Team</h3>
+                      </main>`
+                };
+                transporter.sendMail(mailOptions, (err, info) => {
+                    if (err) {
+                        console.log(err, 'error sending email');
+                        return res.status(200).json({ msg: 'User registered successfully but email verification link could not be sent to the user\'s email address', success: false });
+                    }
+                    else {
+                        console.log(info, date, 'info sending email');
+                        return res.status(200).json({ msg: 'User registered successfully and email verification link sent to the user\'s email address', success: true });
+                    }
+                })
+                return res.status(200).json({ msg: 'User already exists but email is not verified', success, verified: false });
             }
             else {
                 bycrypt.genSalt(10, (err, salt) => {
                     if (err) throw err;
                     bycrypt.hash(password, salt, async (err, hash) => {
                         if (err) throw err;
-                        const newUser = new User({
+                        const newUser = await new User({
                             fname,
                             lname,
                             email,
-                            password: hash
+                            password: hash,
                         });
                         await newUser.save();
-                        return res.status(200).json({ msg: 'User registered successfully', newUser, success: true });
-                    }
-                    )
+                        const token = jwt.sign({ newUser }, process.env.JWT_SECRET, { expiresIn: 3600 });
+                        await User.findOneAndUpdate({ email }, { verificationToken: token })
+                        // now send a verification email to the user's email address
+                        const transporter = nodeMailer.createTransport({
+                            service: 'gmail',
+                            auth: {
+                                user: process.env.NODEMAILER_EMAIL,
+                                pass: process.env.NODEMAILER_PASSWORD
+                            }
+                        });
+                        const mailOptions = {
+                            from: 'support@hospitalo.com',
+                            to: email,
+                            subject: 'Email Verification',
+
+                            html: ` <main
+                            style="
+                              backdrop-filter: blur(10px);
+                              box-shadow: 0 0 10px #af5111;
+                              padding: 10px;
+                            "
+                          >
+                            <h1 style="color: green; text-align: center">Email Verification</h1>
+                            <p style="color: magenta; font-weight: bold">
+                              Please click on the link below to verify your email address and activate
+                              your account
+                            </p>
+                            <a
+                              href=${process.env.SITE_URL}/user/verify?token=${token}
+                              target="_blank"
+                              style="color: red; font-weight: bold; text-decoration: none"
+                              >Verify Email Address</a
+                            >
+                            <ul
+                              style="
+                                color: blue;
+                                width: 100%;
+                                height: 100%;
+                                padding: 4px;
+                                gap: 14px;
+                                text-align: left;
+                                margin-left: 10px;
+                                flex-wrap: wrap;
+                                text-wrap: balance;
+                                list-style-type: square;
+                                list-style-position: calc(40px-60px);
+                                list-style-image: url('https://img.icons8.com/ios-filled/14/right') !important;
+                              "
+                            >
+                              <li>If you did not register with us then you can ignore this email</li>
+                              <li>
+                                if you have any query then you can contact us by replying to this
+                                email we will try to resolve your query as soon as possible
+                              </li>
+                              <li>
+                                if you have not registered with us then we will delete your email
+                                address from our database within 1 hours
+                              </li>
+                            </ul>
+                            <h3 style="color: green; text-align: center">Thank You</h3>
+                            <h3 style="color: green; text-align: center">Hospitalo Team</h3>
+                          </main>`
+                        };
+                        transporter.sendMail(mailOptions, (err, info) => {
+                            if (err) {
+                                console.log(err, 'error sending email');
+                                return res.status(200).json({ msg: 'User registered successfully but email verification link could not be sent to the user\'s email address', success: false });
+                            }
+                            else {
+                                console.log(info, date, 'info sending email');
+                                return res.status(200).json({ msg: 'User registered successfully and email verification link sent to the user\'s email address', success: true });
+                            }
+                        });
+                        return res.status(200).json({ msg: 'User registered successfully and email verification link sent to the user\'s email address', success: true, verified: false });
+                    });
                 }
-                )
+                );  // end of bycrypt
             }
         }
+
+
     } catch (error) {
         console.log(error, 'error');
     }
 });
+
 
 router.post('/login', async (req, res) => {
     try {
@@ -81,28 +232,6 @@ router.post('/login', async (req, res) => {
 
 // get the specific user with authorization token in header
 
-router.get('/get', async (req, res) => {
-    try {
-        let success = false;
-        const token = req.header('Authorization')?.split(' ')[1];
-        if (!token) {
-            return res.status(401).json({ error: 'No token, authorization denied', success });
-        }
-        else {
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            const user = await User.findById(decoded.user._id).select('-password');
-            if (!user) {
-                return res.status(404).json({ error: 'User not found', success });
-            }
-            else {
-                return res.status(200).json({ msg: 'User found', user, success: true });
-            }
-        }
-    } catch (error) {
-        console.log(error, 'error');
-        return res.status(500).json({ error: 'Internal Server error', success: false });
-    }
-});
 
 
 router.get('/logout', async (req, res) => {
