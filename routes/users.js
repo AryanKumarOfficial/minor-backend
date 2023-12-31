@@ -23,7 +23,7 @@ router.post('/register', async (req, res) => {
         else {
             const user = await User.findOne({ email });
             if (user && user.isVerified) {
-                return res.status(200).json({ msg: 'User already exists', success, verified: true });
+                return res.status(200).json({ msg: 'User already exists', success, verified: true, email });
             }
             else if (user && !user.isVerified) {
                 // if the user exists but email is not verified then send a verification link to the user's email address again
@@ -98,14 +98,14 @@ router.post('/register', async (req, res) => {
                         return res.status(200).json({ msg: 'User registered successfully and email verification link sent to the user\'s email address', success: true });
                     }
                 })
-                return res.status(200).json({ msg: 'User already exists but email is not verified', success, verified: false });
+                return res.status(200).json({ msg: 'User already exists but email is not verified', success, verified: false, email });
             }
             else {
                 bycrypt.genSalt(10, (err, salt) => {
                     if (err) throw err;
                     bycrypt.hash(password, salt, async (err, hash) => {
                         if (err) throw err;
-                        const newUser = await new User({
+                        const newUser = new User({
                             fname,
                             lname,
                             email,
@@ -185,7 +185,7 @@ router.post('/register', async (req, res) => {
                                 return res.status(200).json({ msg: 'User registered successfully and email verification link sent to the user\'s email address', success: true });
                             }
                         });
-                        return res.status(200).json({ msg: 'User registered successfully and email verification link sent to the user\'s email address', success: true, verified: false });
+                        return res.status(200).json({ msg: 'User registered successfully and email verification link sent to the user\'s email address', success: true, verified: false, email });
                     });
                 }
                 );  // end of bycrypt
