@@ -28,6 +28,7 @@ router.post('/register', async (req, res) => {
             else if (user && !user.isVerified) {
                 // if the user exists but email is not verified then send a verification link to the user's email address again
                 const token = jwt.sign({ user }, process.env.JWT_SECRET, { expiresIn: 3600 });
+                await User.findOneAndUpdate({ email }, { verificationToken: token })
                 const transporter = nodeMailer.createTransport({
                     service: 'gmail',
                     auth: {
