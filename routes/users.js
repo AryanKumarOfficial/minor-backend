@@ -212,7 +212,7 @@ router.post('/login', async (req, res) => {
             if (!user) {
                 return res.status(200).json({ msg: 'User does not exists', success });
             }
-            else {
+            else if (user && user?.isVerified) {
                 bycrypt.compare(password, user.password, (err, isMatch) => {
                     if (err) throw err;
                     if (isMatch) {
@@ -223,6 +223,9 @@ router.post('/login', async (req, res) => {
                         return res.status(200).json({ msg: 'Invalid credentials', success });
                     }
                 })
+            }
+            else if (user && !user?.isVerified) {
+                return res.status(200).json({ msg: 'Please verify your email address and activate your account', success, verified: false, email });
             }
         }
     } catch (error) {
