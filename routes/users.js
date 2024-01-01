@@ -354,17 +354,21 @@ router.get('/verify/:token', async (req, res) => {
         let success = false;
         const { token } = req.params;
         if (!token) {
-            return res.status(404).json({ error: 'Please enter all fields', reqBody: req.body, success });
+            return res.status(404).json({ error: 'Please enter all fields', reqBody: req.body, success, verified: false });
         }
         else {
             try {
                 const decoded = jwt.verify(token, process.env.JWT_SECRET);
                 const user = await User.findById(decoded.user._id).select('-password');
                 if (!user) {
-                    return res.status(404).json({ error: 'User not found', success });
+                    return res.status(404).json({ error: 'User not found', success, verified: false });
+                }
+                else if (user && user.isVerified) {
+                    return res.status(200).json({ msg: 'User already exists and email is verified', success, verified: true });
                 }
                 else {
                     user.isVerified = true;
+                    user.verificationToken = '';
                     await user.save();
                     // now send a welcome email to the user's email address
                     const transporter = nodeMailer.createTransport({
@@ -423,11 +427,11 @@ router.get('/verify/:token', async (req, res) => {
                     transporter.sendMail(mailOptions, (err, info) => {
                         if (err) {
                             console.log(err, 'error sending email');
-                            return res.status(200).json({ msg: 'User email verified successfully but welcome email could not be sent to the user\'s email address', success: false });
+                            return res.status(200).json({ msg: 'User email verified successfully but welcome email could not be sent to the user\'s email address', success: false, verified: true });
                         }
                         else {
                             console.log(info, date, 'info sending email');
-                            return res.status(200).json({ msg: 'User email verified successfully and welcome email sent to the user\'s email address', success: true });
+                            return res.status(200).json({ msg: 'User email verified successfully and welcome email sent to the user\'s email address', success: true, verified: true });
                         }
                     });
                     // now send a email to the admin's email address to notify the admin about the email verification and account activation of the user
@@ -482,32 +486,32 @@ router.get('/verify/:token', async (req, res) => {
                     transporter1.sendMail(mailOptions1, (err, info) => {
                         if (err) {
                             console.log(err, 'error sending email');
-                            return res.status(200).json({ msg: 'User email verified successfully but email could not be sent to the admin\'s email address to notify the admin about the email verification and account activation of the user', success: false });
+                            return res.status(200).json({ msg: 'User email verified successfully but email could not be sent to the admin\'s email address to notify the admin about the email verification and account activation of the user', success: false, verified: true });
                         }
                         else {
                             console.log(info, date, 'info sending email');
-                            return res.status(200).json({ msg: 'User email verified successfully and email sent to the admin\'s email address to notify the admin about the email verification and account activation of the user', success: true });
+                            return res.status(200).json({ msg: 'User email verified successfully and email sent to the admin\'s email address to notify the admin about the email verification and account activation of the user', success: true, verified: true });
                         }
                     }
                     );
-                    return res.status(200).json({ msg: 'User email verified successfully', success: true });
+                    return res.status(200).json({ msg: 'User email verified successfully', success: true, verified: true });
                 }
             } catch (error) {
                 if (error.name === 'TokenExpiredError') {
-                    return res.status(401).json({ error: 'Token expired, please resend verification link', success });
+                    return res.status(401).json({ error: 'Token expired, please resend verification link', success, verified: false });
                 }
                 else if (error.name === 'JsonWebTokenError') {
-                    return res.status(401).json({ error: 'Invalid token, please resend verification link', success });
+                    return res.status(401).json({ error: 'Invalid token, please resend verification link', success, verified: false });
                 }
                 else {
                     console.log(error, 'error');
-                    return res.status(500).json({ error: 'Internal Server error', success: false });
+                    return res.status(500).json({ error: 'Internal Server error', success: false, verified: false, invalidToken: true });
                 }
             }
         }
     } catch (error) {
         console.log(error, 'error');
-        return res.status(500).json({ error: 'Internal Server error', success: false });
+        return res.status(500).json({ error: 'Internal Server error', success: false, verified: false, invalidToken: true });
     }
 }
 );
