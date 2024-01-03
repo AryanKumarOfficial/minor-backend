@@ -15,6 +15,7 @@ app.get('/', (req, res) => {
 
 app.use('/user', require('./routes/users'));
 
+app.use("/api/user", require("./routes/newUser"))
 
 app.listen(process.env.EXPRESS_PORT, () => {
     console.log(`Server is running on localhost:${process.env.EXPRESS_PORT}`);
