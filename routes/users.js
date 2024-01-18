@@ -7,7 +7,6 @@ const nodeMailer = require('nodemailer');
 const createMailOptions = require('./mailTemplate');
 
 const router = express.Router();
-
 router.use(express.json());
 
 router.get('/', (req, res) => {
