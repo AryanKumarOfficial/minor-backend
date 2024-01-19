@@ -5,6 +5,20 @@ router.use(express.json());
 
 const Appointment = require('../database/model/Appointment');
 
+router.post('/fetch', async (req, res) => {
+    try {
+        const { id } = req.body ?? {};
+        if (!id) {
+            return res.status(400).json({ success: false, error: 'Invalid request' });
+        }
+        const appointments = await Appointment.find({ user: id }).sort({ createdAt: -1 });
+        return res.status(200).json({ success: true, appointments });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ success: false, error: 'Something went wrong' });
+    }
+});
+
 router.post('/add', async (req, res) => {
     let success = false;
     try {
