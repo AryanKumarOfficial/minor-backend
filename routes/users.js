@@ -4,7 +4,7 @@ const User = require('../database/model/User');
 const bycrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodeMailer = require('nodemailer');
-const createMailOptions = require('./mailTemplate');
+const { createMailOptions } = require('./mailTemplate');
 
 const router = express.Router();
 router.use(express.json());
