@@ -29,7 +29,7 @@ router.post('/add', async (req, res) => {
         if (!fname || !lname || !phone || !department || !bedType || !appointmentDate || !address || !id) {
             return res.status(404).json({ success: false, error: 'Invalid request' });
         }
-        const appointment = new Appointment({ fname, lname, phone, department, bedType, appointmentDate, address, id });
+        const appointment = new Appointment({ fname, lname, phone, department, bedType, appointmentDate, address, user: id });
         await appointment.save();
         success = true;
         return res.status(201).json({ success, message: 'Appointment created successfully' });
